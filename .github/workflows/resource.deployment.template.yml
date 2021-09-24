@@ -34,40 +34,40 @@ env:
   ARM_MGMTGROUP_ID: ${{ secrets.ARM_MGMTGROUP_ID }}
 
 jobs:
-  ##################
-  #   UNIT TESTS   #
-  ##################
-  # Global tests
-  # ------------
-  job_tests_module_global:
-    runs-on: ubuntu-20.04
-    name: "Run global module tests"
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: "Test module"
-        uses: ./.github/actions/templates/validateModuleGeneral
-        with:
-          modulePath: '${{ github.event.inputs.modulepath }}'
-          moduleName: '${{ github.event.inputs.moduleName }}'
+  # ##################
+  # #   UNIT TESTS   #
+  # ##################
+  # # Global tests
+  # # ------------
+  # job_tests_module_global:
+  #   runs-on: ubuntu-20.04
+  #   name: "Run global module tests"
+  #   steps:
+  #     - name: "Checkout"
+  #       uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 0
+  #     - name: "Test module"
+  #       uses: ./.github/actions/templates/validateModuleGeneral
+  #       with:
+  #         modulePath: '${{ github.event.inputs.modulepath }}'
+  #         moduleName: '${{ github.event.inputs.moduleName }}'
 
-  # Global API tests
-  # ----------------
-  job_tests_module_global_api:
-    runs-on: ubuntu-20.04
-    name: "Run global API module tests"
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: "Test module"
-        uses: ./.github/actions/templates/validateModuleApis
-        with:
-          modulePath: '${{ github.event.inputs.modulepath }}'
-          moduleName: '${{ github.event.inputs.moduleName }}'
+  # # Global API tests
+  # # ----------------
+  # job_tests_module_global_api:
+  #   runs-on: ubuntu-20.04
+  #   name: "Run global API module tests"
+  #   steps:
+  #     - name: "Checkout"
+  #       uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 0
+  #     - name: "Test module"
+  #       uses: ./.github/actions/templates/validateModuleApis
+  #       with:
+  #         modulePath: '${{ github.event.inputs.modulepath }}'
+  #         moduleName: '${{ github.event.inputs.moduleName }}'
 
   # Validate deployment module tests
   # --------------------------------
