@@ -65,8 +65,8 @@ jobs:
           inlineScript: |
             $deploymentOutput = '${{ steps.rg-deploy.outputs.deploymentOutput }}'
             Write-Verbose $deploymentOutput -Verbose
-            $deploymentOutput = "{$deploymentOutput}"
-            Write-Verbose $deploymentOutput -Verbose
+            # $deploymentOutput = "{$deploymentOutput}"
+            # Write-Verbose $deploymentOutput -Verbose
             $deploymentOutputConversion = ConvertFrom-Json $deploymentOutput
             Write-Verbose $deploymentOutputConversion.resourceGroupName -Verbose
             Write-Verbose $deploymentOutputConversion.resourceGroupResourceId -Verbose
