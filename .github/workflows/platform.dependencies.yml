@@ -33,7 +33,9 @@ jobs:
   job_deploy_rg:
     runs-on: ubuntu-20.04
     outputs:
-      deploymentOutput: ${{ steps.rg-deploy.outputs.deploymentOutput }}
+      # deploymentOutput: ${{ steps.rg-deploy.outputs.deploymentOutput }}
+      deploymentOutputArtifacts: ${{ steps.rg-deploy.outputs.deploymentOutput-artifactsparametersjson }}
+      deploymentOutputValidation: ${{ steps.rg-deploy.outputs.deploymentOutput-validationparametersjson }}
     name: 'Deploy resource group'
     env:
       namespace: 'Microsoft.Resources\resourceGroups'
@@ -64,6 +66,9 @@ jobs:
         with:
           inlineScript: |
             $deploymentOutput = '${{ steps.rg-deploy.outputs.deploymentOutput }}'
+            $rawSuffix = ${{ matrix.parameterFilePaths}}
+            $suffix = $rawSuffix -replace '.',"
+            Write-Host "::set-output name=deploymentOutput-$suffix::$deploymentOutput"
             Write-Verbose $deploymentOutput -Verbose
             # $deploymentOutput = "{$deploymentOutput}"
             # Write-Verbose $deploymentOutput -Verbose
@@ -84,13 +89,16 @@ jobs:
       uses: azure/powershell@v1
       with:
         inlineScript: |
-          $deploymentOutput = '${{ needs.job_deploy_rg.outputs.deploymentOutput }}'
-          Write-Verbose $deploymentOutput -Verbose
-          $deploymentOutput = "{$deploymentOutput}"
-          Write-Verbose $deploymentOutput -Verbose
-          $deploymentOutputConversion = ConvertFrom-Json $deploymentOutput
-          Write-Verbose $deploymentOutputConversion.resourceGroupName -Verbose
-          Write-Verbose $deploymentOutputConversion.resourceGroupResourceId -Verbose
+          $deploymentOutputArtifacts = '${{ needs.job_deploy_rg.outputs.deploymentOutputArtifacts }}'
+          $deploymentOutputValidation = '${{ needs.job_deploy_rg.outputs.deploymentOutputValidation }}'
+          Write-Verbose $deploymentOutputArtifacts -Verbose
+          Write-Verbose $deploymentOutputValidation -Verbose
+          $deploymentOutputArtifactsConversion = ConvertFrom-Json $deploymentOutputArtifacts
+          Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupName -Verbose
+          Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupResourceId -Verbose
+          $deploymentOutputValidationConversion = ConvertFrom-Json $deploymentOutputValidation
+          Write-Verbose $deploymentOutputValidationConversion.resourceGroupName -Verbose
+          Write-Verbose $deploymentOutputValidationConversion.resourceGroupResourceId -Verbose
         azPSVersion: 'latest'
 
   # job_deploy_msi:
