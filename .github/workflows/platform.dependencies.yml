@@ -90,16 +90,17 @@ jobs:
       uses: azure/powershell@v1
       with:
         inlineScript: |
-          $deploymentOutputArtifacts = '${{ needs.job_deploy_rg.outputs.deploymentOutputArtifacts }}'
-          $deploymentOutputValidation = '${{ needs.job_deploy_rg.outputs.deploymentOutputValidation }}'
-          Write-Verbose $deploymentOutputArtifacts -Verbose
-          Write-Verbose $deploymentOutputValidation -Verbose
-          $deploymentOutputArtifactsConversion = ConvertFrom-Json $deploymentOutputArtifacts
-          Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupName -Verbose
-          Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupResourceId -Verbose
-          $deploymentOutputValidationConversion = ConvertFrom-Json $deploymentOutputValidation
-          Write-Verbose $deploymentOutputValidationConversion.resourceGroupName -Verbose
-          Write-Verbose $deploymentOutputValidationConversion.resourceGroupResourceId -Verbose
+          Write-Verbose "${{fromJson(needs.job_deploy_rg.outputs)}}" -Verbose
+          # $deploymentOutputArtifacts = '${{ needs.job_deploy_rg.outputs.deploymentOutputArtifacts }}'
+          # $deploymentOutputValidation = '${{ needs.job_deploy_rg.outputs.deploymentOutputValidation }}'
+          # Write-Verbose $deploymentOutputArtifacts -Verbose
+          # Write-Verbose $deploymentOutputValidation -Verbose
+          # $deploymentOutputArtifactsConversion = ConvertFrom-Json $deploymentOutputArtifacts
+          # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupName -Verbose
+          # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupResourceId -Verbose
+          # $deploymentOutputValidationConversion = ConvertFrom-Json $deploymentOutputValidation
+          # Write-Verbose $deploymentOutputValidationConversion.resourceGroupName -Verbose
+          # Write-Verbose $deploymentOutputValidationConversion.resourceGroupResourceId -Verbose
         azPSVersion: 'latest'
 
   # job_deploy_msi:
