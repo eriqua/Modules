@@ -110,12 +110,13 @@ jobs:
     name: 'Deploy user assigned identity'
     env:
       namespace: 'Microsoft.ManagedIdentity\userAssignedIdentities'
+      parameterFilePaths: 'parameters.json'
     # needs:
     #   - job_deploy_rg
-    strategy:
-      fail-fast: false
-      matrix:
-        parameterFilePaths: ['parameters.json']
+    # strategy:
+    #   fail-fast: false
+    #   matrix:
+    #     parameterFilePaths: ['parameters.json']
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v2
@@ -126,7 +127,7 @@ jobs:
         uses: ./.github/actions/templates/validateModuleDeployment
         with:
           templateFilePath: 'arm/${{ env.namespace }}/deploy.bicep'
-          parameterFilePath: '${{ env.dependencyPath }}/${{ env.namespace }}/parameters/${{ matrix.parameterFilePaths }}'
+          parameterFilePath: '${{ env.dependencyPath }}/${{ env.namespace }}/parameters/${{ env.parameterFilePaths }}'
           location: '${{ env.defaultLocation }}'
           resourceGroupName: '${{ env.resourceGroupName }}'
           subscriptionId: '${{ secrets.ARM_SUBSCRIPTION_ID }}'
