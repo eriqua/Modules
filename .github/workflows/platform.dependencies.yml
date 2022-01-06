@@ -30,99 +30,27 @@ env:
   DEPLOYMENT_SP_ID: '${{ secrets.DEPLOYMENT_SP_ID }}'
 
 jobs:
-  job_deploy_rg:
-    runs-on: ubuntu-20.04
-    outputs:
-      # deploymentOutput: ${{ steps.rg-deploy.outputs.deploymentOutput }}
-      deploymentOutputArtifacts: ${{ steps.rg-deploy-out.outputs.deploymentOutput-artifactsparametersjson }}
-      deploymentOutputValidation: ${{ steps.rg-deploy-out.outputs.deploymentOutput-validationparametersjson }}
-    name: 'Deploy resource group'
-    env:
-      namespace: 'Microsoft.Resources\resourceGroups'
-    strategy:
-      fail-fast: false
-      matrix:
-        parameterFilePaths:
-          ['artifacts.parameters.json', 'validation.parameters.json']
-    steps:
-      - name: 'Checkout'
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: 'Deploy module'
-        id: rg-deploy
-        uses: ./.github/actions/templates/validateModuleDeployment
-        with:
-          templateFilePath: 'arm/${{ env.namespace }}/deploy.bicep'
-          parameterFilePath: '${{ env.dependencyPath }}/${{ env.namespace }}/parameters/${{ matrix.parameterFilePaths }}'
-          location: '${{ env.defaultLocation }}'
-          resourceGroupName: '${{ env.resourceGroupName }}'
-          subscriptionId: '${{ secrets.ARM_SUBSCRIPTION_ID }}'
-          managementGroupId: '${{ secrets.ARM_MGMTGROUP_ID }}'
-          removeDeployment: '${{ env.removeDeployment }}'
-      - run: echo ${{ steps.rg-deploy.outputs.deploymentOutput }}
-      - name: Run PowerShell
-        id: rg-deploy-out
-        uses: azure/powershell@v1
-        with:
-          inlineScript: |
-            $deploymentOutput = '${{ steps.rg-deploy.outputs.deploymentOutput }}'
-            $rawSuffix = '${{ matrix.parameterFilePaths}}'
-            $suffix = $rawSuffix -replace '\.', ''
-            Write-Verbose $suffix -Verbose
-            Write-Verbose $rawSuffix -Verbose
-            Write-Verbose $deploymentOutput -Verbose
-            Write-Output ('::set-output name=deploymentOutput-{0}::{1}' -f $suffix, $deploymentOutput)
-            $deploymentOutputConversion = ConvertFrom-Json $deploymentOutput
-            Write-Verbose $deploymentOutputConversion.resourceGroupName -Verbose
-            Write-Verbose $deploymentOutputConversion.resourceGroupResourceId -Verbose
-          azPSVersion: 'latest'
-
-  job2:
-    needs: job_deploy_rg
-    runs-on: ubuntu-latest
-    steps:
-    - name: 'Checkout'
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Run PowerShell
-      uses: azure/powershell@v1
-      env:
-        NEEDS: ${{ toJson(needs) }}
-      with:
-        inlineScript: |
-          Write-Verbose "$NEEDS" -Verbose
-          $deploymentOutputArtifacts = '${{ needs.job_deploy_rg.outputs.deploymentOutputArtifacts }}'
-          $deploymentOutputValidation = '${{ needs.job_deploy_rg.outputs.deploymentOutputValidation }}'
-          Write-Verbose $deploymentOutputArtifacts -Verbose
-          Write-Verbose $deploymentOutputValidation -Verbose
-          # $deploymentOutputArtifactsConversion = ConvertFrom-Json $deploymentOutputArtifacts
-          # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupName -Verbose
-          # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupResourceId -Verbose
-          # $deploymentOutputValidationConversion = ConvertFrom-Json $deploymentOutputValidation
-          # Write-Verbose $deploymentOutputValidationConversion.resourceGroupName -Verbose
-          # Write-Verbose $deploymentOutputValidationConversion.resourceGroupResourceId -Verbose
-        azPSVersion: 'latest'
-
-  # job_deploy_msi:
+  # job_deploy_rg:
   #   runs-on: ubuntu-20.04
-  #   name: 'Deploy user assigned identity'
+  #   outputs:
+  #     # deploymentOutput: ${{ steps.rg-deploy.outputs.deploymentOutput }}
+  #     deploymentOutputArtifacts: ${{ steps.rg-deploy-out.outputs.deploymentOutput-artifactsparametersjson }}
+  #     deploymentOutputValidation: ${{ steps.rg-deploy-out.outputs.deploymentOutput-validationparametersjson }}
+  #   name: 'Deploy resource group'
   #   env:
-  #     namespace: 'Microsoft.ManagedIdentity\userAssignedIdentities'
-  #   needs:
-  #     - job_deploy_rg
+  #     namespace: 'Microsoft.Resources\resourceGroups'
   #   strategy:
   #     fail-fast: false
   #     matrix:
-  #       parameterFilePaths: ['parameters.json']
+  #       parameterFilePaths:
+  #         ['artifacts.parameters.json', 'validation.parameters.json']
   #   steps:
   #     - name: 'Checkout'
   #       uses: actions/checkout@v2
   #       with:
   #         fetch-depth: 0
   #     - name: 'Deploy module'
-  #       id: deploy-msi-dep
+  #       id: rg-deploy
   #       uses: ./.github/actions/templates/validateModuleDeployment
   #       with:
   #         templateFilePath: 'arm/${{ env.namespace }}/deploy.bicep'
@@ -132,8 +60,105 @@ jobs:
   #         subscriptionId: '${{ secrets.ARM_SUBSCRIPTION_ID }}'
   #         managementGroupId: '${{ secrets.ARM_MGMTGROUP_ID }}'
   #         removeDeployment: '${{ env.removeDeployment }}'
-  #   outputs:
-  #     msiPrincipalId: ${{ steps.deploy-msi-dep.outputs.msiPrincipalId }}
+  #     - run: echo ${{ steps.rg-deploy.outputs.deploymentOutput }}
+  #     - name: Run PowerShell
+  #       id: rg-deploy-out
+  #       uses: azure/powershell@v1
+  #       with:
+  #         inlineScript: |
+  #           $deploymentOutput = '${{ steps.rg-deploy.outputs.deploymentOutput }}'
+  #           $rawSuffix = '${{ matrix.parameterFilePaths}}'
+  #           $suffix = $rawSuffix -replace '\.', ''
+  #           Write-Verbose $suffix -Verbose
+  #           Write-Verbose $rawSuffix -Verbose
+  #           Write-Verbose $deploymentOutput -Verbose
+  #           Write-Output ('::set-output name=deploymentOutput-{0}::{1}' -f $suffix, $deploymentOutput)
+  #           $deploymentOutputConversion = ConvertFrom-Json $deploymentOutput
+  #           Write-Verbose $deploymentOutputConversion.resourceGroupName -Verbose
+  #           Write-Verbose $deploymentOutputConversion.resourceGroupResourceId -Verbose
+  #         azPSVersion: 'latest'
+
+  # job2:
+  #   needs: job_deploy_rg
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: 'Checkout'
+  #     uses: actions/checkout@v2
+  #     with:
+  #       fetch-depth: 0
+  #   - name: Run PowerShell
+  #     uses: azure/powershell@v1
+  #     env:
+  #       NEEDS: ${{ toJson(needs) }}
+  #     with:
+  #       inlineScript: |
+  #         Write-Verbose "$NEEDS" -Verbose
+  #         $deploymentOutputArtifacts = '${{ needs.job_deploy_rg.outputs.deploymentOutputArtifacts }}'
+  #         $deploymentOutputValidation = '${{ needs.job_deploy_rg.outputs.deploymentOutputValidation }}'
+  #         Write-Verbose $deploymentOutputArtifacts -Verbose
+  #         Write-Verbose $deploymentOutputValidation -Verbose
+  #         # $deploymentOutputArtifactsConversion = ConvertFrom-Json $deploymentOutputArtifacts
+  #         # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupName -Verbose
+  #         # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupResourceId -Verbose
+  #         # $deploymentOutputValidationConversion = ConvertFrom-Json $deploymentOutputValidation
+  #         # Write-Verbose $deploymentOutputValidationConversion.resourceGroupName -Verbose
+  #         # Write-Verbose $deploymentOutputValidationConversion.resourceGroupResourceId -Verbose
+  #       azPSVersion: 'latest'
+
+  job_deploy_msi:
+    runs-on: ubuntu-20.04
+    name: 'Deploy user assigned identity'
+    env:
+      namespace: 'Microsoft.ManagedIdentity\userAssignedIdentities'
+    # needs:
+    #   - job_deploy_rg
+    strategy:
+      fail-fast: false
+      matrix:
+        parameterFilePaths: ['parameters.json']
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: 'Deploy module'
+        id: deploy-msi-dep
+        uses: ./.github/actions/templates/validateModuleDeployment
+        with:
+          templateFilePath: 'arm/${{ env.namespace }}/deploy.bicep'
+          parameterFilePath: '${{ env.dependencyPath }}/${{ env.namespace }}/parameters/${{ matrix.parameterFilePaths }}'
+          location: '${{ env.defaultLocation }}'
+          resourceGroupName: '${{ env.resourceGroupName }}'
+          subscriptionId: '${{ secrets.ARM_SUBSCRIPTION_ID }}'
+          managementGroupId: '${{ secrets.ARM_MGMTGROUP_ID }}'
+          removeDeployment: '${{ env.removeDeployment }}'
+    outputs:
+      deploymentOutput: ${{ steps.deploy-msi-dep.outputs.deploymentOutput }}
+
+  job2:
+    needs: job_deploy_msi
+    runs-on: ubuntu-latest
+    steps:
+    - name: 'Checkout'
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Run PowerShell
+      uses: azure/powershell@v1
+      # env:
+      #   NEEDS: ${{ toJson(needs) }}
+      with:
+        inlineScript: |
+          # Write-Verbose "$NEEDS" -Verbose
+          $deploymentOutput = '${{ needs.job_deploy_msi.outputs.deploymentOutput }}'
+          Write-Verbose $deploymentOutput -Verbose
+          # $deploymentOutputArtifactsConversion = ConvertFrom-Json $deploymentOutputArtifacts
+          # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupName -Verbose
+          # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupResourceId -Verbose
+          # $deploymentOutputValidationConversion = ConvertFrom-Json $deploymentOutputValidation
+          # Write-Verbose $deploymentOutputValidationConversion.resourceGroupName -Verbose
+          # Write-Verbose $deploymentOutputValidationConversion.resourceGroupResourceId -Verbose
+        azPSVersion: 'latest'
 
   # job_deploy_pa:
   #   runs-on: ubuntu-20.04
