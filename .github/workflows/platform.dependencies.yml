@@ -70,10 +70,7 @@ jobs:
             $suffix = $rawSuffix -replace '.',"
             Write-Verbose $suffix -Verbose
             Write-Verbose $deploymentOutput -Verbose
-            # Write-Output "::set-output name=deploymentOutput-$suffix::$deploymentOutput"
             Write-Output ('::set-output name=deploymentOutput-{0}::{1}' -f $suffix, $deploymentOutput)
-            # $deploymentOutput = "{$deploymentOutput}"
-            # Write-Verbose $deploymentOutput -Verbose
             $deploymentOutputConversion = ConvertFrom-Json $deploymentOutput
             Write-Verbose $deploymentOutputConversion.resourceGroupName -Verbose
             Write-Verbose $deploymentOutputConversion.resourceGroupResourceId -Verbose
