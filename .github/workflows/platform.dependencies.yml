@@ -138,7 +138,7 @@ jobs:
         uses: azure/powershell@v1
         with:
           inlineScript: |
-            $deploymentOutput = '${{ steps.deploy-msi.outputs.deploy-msi }}'
+            $deploymentOutput = '${{ steps.deploy-msi.outputs.deploymentOutput }}'
             Write-Verbose $deploymentOutput -Verbose
             $deploymentOutputConversion = ConvertFrom-Json $deploymentOutput
             $msiPrincipalId = $deploymentOutputConversion.msiPrincipalId
