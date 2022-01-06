@@ -123,7 +123,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: 'Deploy module'
-        id: deploy-msi-dep
+        id: deploy-msi
         uses: ./.github/actions/templates/validateModuleDeployment
         with:
           templateFilePath: 'arm/${{ env.namespace }}/deploy.bicep'
@@ -133,8 +133,20 @@ jobs:
           subscriptionId: '${{ secrets.ARM_SUBSCRIPTION_ID }}'
           managementGroupId: '${{ secrets.ARM_MGMTGROUP_ID }}'
           removeDeployment: '${{ env.removeDeployment }}'
+      - name: Run PowerShell Out
+        id: deploy-msi-out
+        uses: azure/powershell@v1
+        with:
+          inlineScript: |
+            $deploymentOutput = '${{ steps.deploy-msi.outputs.deploy-msi }}'
+            Write-Verbose $deploymentOutput -Verbose
+            $deploymentOutputConversion = ConvertFrom-Json $deploymentOutput
+            $msiPrincipalId = $deploymentOutputConversion.msiPrincipalId
+            Write-Verbose $msiPrincipalId -Verbose
+            Write-Output ('::set-output name=msiPrincipalId::{0}' -f $msiPrincipalId)
+          azPSVersion: 'latest'
     outputs:
-      deploymentOutput: ${{ steps.deploy-msi-dep.outputs.deploymentOutput }}
+      msiPrincipalId: ${{ steps.deploy-msi-out.outputs.msiPrincipalId }}
 
   job2:
     needs: job_deploy_msi
@@ -151,8 +163,8 @@ jobs:
       with:
         inlineScript: |
           # Write-Verbose "$NEEDS" -Verbose
-          $deploymentOutput = '${{ needs.job_deploy_msi.outputs.deploymentOutput }}'
-          Write-Verbose $deploymentOutput -Verbose
+          $msiPrincipalId = '${{ needs.job_deploy_msi.outputs.msiPrincipalId }}'
+          Write-Verbose $msiPrincipalId -Verbose
           # $deploymentOutputArtifactsConversion = ConvertFrom-Json $deploymentOutputArtifacts
           # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupName -Verbose
           # Write-Verbose $deploymentOutputArtifactsConversion.resourceGroupResourceId -Verbose
