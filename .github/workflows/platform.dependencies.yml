@@ -67,7 +67,7 @@ jobs:
           inlineScript: |
             $deploymentOutput = '${{ steps.rg-deploy.outputs.deploymentOutput }}'
             $rawSuffix = ${{ matrix.parameterFilePaths}}
-            $suffix = $rawSuffix -replace '.',"
+            $suffix = $rawSuffix -replace '.', ''
             Write-Verbose $suffix -Verbose
             Write-Verbose $deploymentOutput -Verbose
             Write-Output ('::set-output name=deploymentOutput-{0}::{1}' -f $suffix, $deploymentOutput)
