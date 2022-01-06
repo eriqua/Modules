@@ -34,8 +34,8 @@ jobs:
     runs-on: ubuntu-20.04
     outputs:
       # deploymentOutput: ${{ steps.rg-deploy.outputs.deploymentOutput }}
-      deploymentOutputArtifacts: ${{ steps.rg-deploy.outputs.deploymentOutput-artifactsparametersjson }}
-      deploymentOutputValidation: ${{ steps.rg-deploy.outputs.deploymentOutput-validationparametersjson }}
+      deploymentOutputArtifacts: ${{ steps.rg-deploy-out.outputs.deploymentOutput-artifactsparametersjson }}
+      deploymentOutputValidation: ${{ steps.rg-deploy-out.outputs.deploymentOutput-validationparametersjson }}
     name: 'Deploy resource group'
     env:
       namespace: 'Microsoft.Resources\resourceGroups'
@@ -62,6 +62,7 @@ jobs:
           removeDeployment: '${{ env.removeDeployment }}'
       - run: echo ${{ steps.rg-deploy.outputs.deploymentOutput }}
       - name: Run PowerShell
+        id: rg-deploy-out
         uses: azure/powershell@v1
         with:
           inlineScript: |
