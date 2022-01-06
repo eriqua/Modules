@@ -82,14 +82,14 @@ jobs:
     needs: job_deploy_rg
     runs-on: ubuntu-latest
     steps:
-    - env:
-        NEEDS: ${{ toJson(needs) }}
     - name: 'Checkout'
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
     - name: Run PowerShell
       uses: azure/powershell@v1
+      env:
+        NEEDS: ${{ toJson(needs) }}
       with:
         inlineScript: |
           Write-Verbose "$NEEDS" -Verbose
