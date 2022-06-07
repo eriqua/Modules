@@ -89,7 +89,6 @@ jobs:
       - job_set_workflow_param
       - job_module_pester_validation
     strategy:
-      fail-fast: false
       matrix:
         parameterFilePaths: ['min.parameters.json', 'parameters.json','max.parameters.json']
     steps:
