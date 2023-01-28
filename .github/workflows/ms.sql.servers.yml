@@ -1,182 +1,148 @@
-name: "Sql: Servers"
+name: 'Sql: Servers'
 
 on:
   workflow_dispatch:
     inputs:
       removeDeployment:
+        type: boolean
         description: 'Remove deployed module'
         required: false
-        default: 'true'
-      versioningOption:
-        description: 'The mode to handle the version increments [major|minor|patch|custom]'
+        default: true
+      prerelease:
+        type: boolean
+        description: 'Publish prerelease module'
         required: false
-        default: 'patch'
-      customVersion:
-        description: 'The version to enforce if [versionOption] is set to [custom]'
-        required: false
-        default: '0.0.1'
+        default: false
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/actions/templates/**'
+      - '.github/workflows/ms.sql.servers.yml'
+      - 'modules/Microsoft.Sql/servers/**'
+      - 'utilities/pipelines/**'
+      - '!utilities/pipelines/deploymentRemoval/**'
+      - '!*/**/readme.md'
 
 env:
-  moduleName: 'servers'
-  modulePath: 'arm/Microsoft.Sql/servers'
-  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-  ARM_MGMTGROUP_ID: ${{ secrets.ARM_MGMTGROUP_ID }}
+  variablesPath: 'settings.yml'
+  modulePath: 'modules/Microsoft.Sql/servers'
+  workflowPath: '.github/workflows/ms.sql.servers.yml'
+  AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+  ARM_SUBSCRIPTION_ID: '${{ secrets.ARM_SUBSCRIPTION_ID }}'
+  ARM_MGMTGROUP_ID: '${{ secrets.ARM_MGMTGROUP_ID }}'
+  ARM_TENANT_ID: '${{ secrets.ARM_TENANT_ID }}'
+  TOKEN_NAMEPREFIX: '${{ secrets.TOKEN_NAMEPREFIX }}'
+
+concurrency:
+  group: ${{ github.workflow }}
 
 jobs:
-  ##################
-  #   UNIT TESTS   #
-  ##################
-  # Global tests
-  # ------------
-  job_tests_module_global:
+  ###########################
+  #   Initialize pipeline   #
+  ###########################
+  job_initialize_pipeline:
     runs-on: ubuntu-20.04
-    name: "Run global module tests"
+    name: 'Initialize pipeline'
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
+      - name: 'Checkout'
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: "Test module"
-        uses: ./.github/actions/templates/validateModuleGeneral
+      - name: 'Set input parameters to output variables'
+        id: get-workflow-param
+        uses: ./.github/actions/templates/getWorkflowInput
+        with:
+          workflowPath: '${{ env.workflowPath}}'
+      - name: 'Get parameter file paths'
+        id: get-module-test-file-paths
+        uses: ./.github/actions/templates/getModuleTestFiles
         with:
           modulePath: '${{ env.modulePath }}'
-          moduleName: '${{ env.moduleName}}'
+    outputs:
+      workflowInput: ${{ steps.get-workflow-param.outputs.workflowInput }}
+      moduleTestFilePaths: ${{ steps.get-module-test-file-paths.outputs.moduleTestFilePaths }}
 
-  # Global API tests
-  # ----------------
-  job_tests_module_global_api:
+  #########################
+  #   Static validation   #
+  #########################
+  job_module_pester_validation:
     runs-on: ubuntu-20.04
-    name: "Run global API module tests"
+    name: 'Static validation'
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: "Test module"
-        uses: ./.github/actions/templates/validateModuleApis
-        with:
-          modulePath: '${{ env.modulePath }}'
-          moduleName: '${{ env.moduleName}}'
-
-  # Validate deployment module tests
-  # --------------------------------
-  job_tests_module_deploy_validate:
-    runs-on: ubuntu-20.04
-    name: "Run deployment validation module tests"
-    strategy:
-      matrix:
-        parameterFilePaths: ['parameters.json']
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
+      - name: 'Checkout'
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set environment variables
-        uses: deep-mm/set-variables@v1.0
+        uses: ./.github/actions/templates/setEnvironmentVariables
         with:
-          # Name of variable file
-          variableFileName: 'variables.module' # Don't write .json here
-      - name: "Test module"
-        uses: ./.github/actions/templates/validateModuleDeploy
+          variablesPath: ${{ env.variablesPath }}
+      - name: 'Run tests'
+        uses: ./.github/actions/templates/validateModulePester
         with:
-          templateFilePath: '${{ env.modulePath }}/deploy.json'
-          parameterFilePath: '${{ env.modulePath }}/parameters/${{ matrix.parameterFilePaths }}'
-          location: '${{ env.defaultLocation }}'
-          resourceGroupName: '${{ env.resourceGroupName }}'
-          subscriptionId: '${{ secrets.ARM_SUBSCRIPTION_ID }}'
-          managementGroupId: '${{ secrets.ARM_MGMTGROUP_ID }}'
+          modulePath: '${{ env.modulePath }}'
+          moduleTestFilePath: '${{ env.moduleTestFilePath }}'
 
-  ####################
-  #   DEPLOY TESTS   #
-  ####################
-  job_deploy_module:
+  #############################
+  #   Deployment validation   #
+  #############################
+  job_module_deploy_validation:
     runs-on: ubuntu-20.04
-    name: "Deploy module"
+    name: 'Deployment validation'
     needs:
-    - job_tests_module_global
-    - job_tests_module_global_api
-    - job_tests_module_deploy_validate
+      - job_initialize_pipeline
+      - job_module_pester_validation
     strategy:
+      fail-fast: false
       matrix:
-        parameterFilePaths: ['parameters.json']
+        moduleTestFilePaths: ${{ fromJson(needs.job_initialize_pipeline.outputs.moduleTestFilePaths) }}
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
+      - name: 'Checkout'
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set environment variables
-        uses: deep-mm/set-variables@v1.0
+        uses: ./.github/actions/templates/setEnvironmentVariables
         with:
-          # Name of variable file
-          variableFileName: 'variables.module' # Don't write .json here
-      - name: "Deploy module"
-        uses: ./.github/actions/templates/deployModule
+          variablesPath: ${{ env.variablesPath }}
+      - name: 'Using test file [${{ matrix.moduleTestFilePaths }}]'
+        uses: ./.github/actions/templates/validateModuleDeployment
         with:
-          moduleName: '${{ env.moduleName }}'
-          templateFilePath: '${{ env.modulePath }}/deploy.json'
-          parameterFilePath: '${{ env.modulePath }}/parameters/${{ matrix.parameterFilePaths }}'
-          location: '${{ env.defaultLocation }}'
-          resourceGroupName: '${{ env.resourceGroupName }}'
+          templateFilePath: '${{ env.modulePath }}/${{ matrix.moduleTestFilePaths }}'
+          location: '${{ env.location }}'
           subscriptionId: '${{ secrets.ARM_SUBSCRIPTION_ID }}'
           managementGroupId: '${{ secrets.ARM_MGMTGROUP_ID }}'
-          removeDeployment: '${{ github.event.inputs.removeDeployment }}'
+          removeDeployment: '${{ (fromJson(needs.job_initialize_pipeline.outputs.workflowInput)).removeDeployment }}'
 
-  ###############
-  #   PUBLISH   #
-  ###############
+  ##################
+  #   Publishing   #
+  ##################
   job_publish_module:
-    name: "Publish module"
-    if: contains(fromJson('["refs/heads/main", "refs/heads/master"]'), github.ref)
+    name: 'Publishing'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event.inputs.prerelease == 'true'
     runs-on: ubuntu-20.04
     needs:
-    - job_deploy_module
+      - job_module_deploy_validation
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
+      - name: 'Checkout'
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set environment variables
-        uses: deep-mm/set-variables@v1.0
+        uses: ./.github/actions/templates/setEnvironmentVariables
         with:
-          # Name of variable file
-          variableFileName: 'variables.module' # Don't write .json here
-      - name: "Publish module"
+          variablesPath: ${{ env.variablesPath }}
+      - name: 'Publishing'
         uses: ./.github/actions/templates/publishModule
         with:
-          templateFilePath: '${{ env.modulePath }}/deploy.json'
-          componentTemplateSpecRGName: '${{ env.componentTemplateSpecRGName }}'
-          componentTemplateSpecRGLocation: '${{ env.componentTemplateSpecRGLocation }}'
-          componentTemplateSpecName: '${{ env.moduleName }}'
-          componentTemplateSpecDescription: '${{ env.componentTemplateSpecDescription }}'
-          publishToTemplateSpec: '${{ env.publishToTemplateSpec }}'
-          versioningOption: '${{ github.event.inputs.versioningOption }}'
-          customVersion: '${{ github.event.inputs.customVersion }}'
-
-  ##############
-  #   REMOVE   #
-  ##############
-  job_remove_module:
-    runs-on: ubuntu-20.04
-    name: "Remove module"
-    if: ${{ github.event.inputs.removeDeployment == 'true' }}
-    needs:
-    - job_deploy_module
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Set environment variables
-        uses: deep-mm/set-variables@v1.0
-        with:
-          # Name of variable file
-          variableFileName: 'variables.module' # Don't write .json here
-      - name: "Remove module"
-        uses: ./.github/actions/templates/removeModule
-        with:
-          moduleName: '${{ env.moduleName }}'
-          templateFilePath: '${{ env.modulePath }}/deploy.json'
-          resourceGroupName: '${{ env.resourceGroupName }}'
+          templateFilePath: '${{ env.modulePath }}/deploy.bicep'
+          templateSpecsRGName: '${{ env.templateSpecsRGName }}'
+          templateSpecsRGLocation: '${{ env.templateSpecsRGLocation }}'
+          templateSpecsDescription: '${{ env.templateSpecsDescription }}'
+          templateSpecsDoPublish: '${{ env.templateSpecsDoPublish }}'
+          bicepRegistryName: '${{ env.bicepRegistryName }}'
+          bicepRegistryRGName: '${{ env.bicepRegistryRGName }}'
+          bicepRegistryRgLocation: '${{ env.bicepRegistryRgLocation }}'
+          bicepRegistryDoPublish: '${{ env.bicepRegistryDoPublish }}'
+          publishLatest: '${{ env.publishLatest }}'
